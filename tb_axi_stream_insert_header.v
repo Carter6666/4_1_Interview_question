@@ -1,0 +1,136 @@
+`timescale  1ns/1ns
+module tb_axi_stream_insert_header();
+
+parameter [6:0]  DATA_WD      = 7'd64;
+parameter [4:0]  DATA_BYTE_WD = DATA_WD/8;
+parameter [4:0]  data_in_num  = 5'd5;
+
+reg                           clk   ;                   
+reg                           rst_n ;                  
+reg                           valid_in ;               
+reg   [DATA_WD-1 : 0]         data_in  ;               
+reg   [DATA_BYTE_WD-1 : 0]    keep_in  ;               
+reg                           last_in  ;               
+reg                           ready_out;               
+reg                           valid_insert ;           
+reg   [DATA_WD-1 : 0]         header_insert;           
+reg   [DATA_BYTE_WD-1 : 0]    keep_insert  ;           //
+													   
+wire                          valid_out;               
+wire  [DATA_WD-1 : 0]         data_out ;               
+wire  [DATA_BYTE_WD-1 : 0]    keep_out ;               
+wire                          last_out ;               
+wire                          ready_in ;               
+wire                          ready_insert;            
+
+
+
+initial
+   begin
+      clk           <= 1'b1;
+	  rst_n         <= 1'b0;
+	  valid_in      <= 1'b0;
+	  data_in       <= {DATA_WD{1'b0}};
+	
+	  keep_in       <= {DATA_BYTE_WD{1'b0}};
+	  last_in       <= 1'b0;
+	  ready_out     <= 1'b1;
+	  valid_insert  <= 1'b0;
+	  header_insert <= {DATA_WD{1'b0}};
+	  keep_insert   <= {DATA_BYTE_WD{1'b0}};
+	  #20
+	  rst_n       <= 1'b1;
+	  #20
+	  wave_self(1);
+	  wave_self(2);
+	  wave_self(3);
+   end
+   
+always #10 clk = ~clk;
+
+task wave_self;
+   input   [4:0]   a;
+   integer        seed;
+   begin 
+      seed        <= a;	  
+	  valid_in    <= 1'b1;
+	  data_in     <= {{$random(seed)},{$random(seed)}};
+	  keep_in     <= {DATA_BYTE_WD{1'b1}};
+	  valid_insert<= 1'b1;
+	  header_insert<= {{$random(seed)},{$random(seed)}};
+	  keep_insert  <= {5'd0,{(DATA_BYTE_WD-5){1'b1}}};
+	  #20
+	  data_in     <= {{$random(seed)},{$random(seed)}};
+	  keep_in     <= {DATA_BYTE_WD{1'b1}};
+	  valid_insert<= 1'b0;
+	  header_insert<= 0;
+	  keep_insert  <= {DATA_BYTE_WD{1'b0}};
+	  #20
+	  data_in     <= {{$random(seed)},{$random(seed)}};
+	  keep_in     <= {DATA_BYTE_WD{1'b1}};
+	  #20         
+	  data_in     <= {{$random(seed)},{$random(seed)}};
+	  keep_in     <= {DATA_BYTE_WD{1'b1}};
+	  //#20         
+	  //data_in     <= $random(seed);
+	  //keep_in     <= {DATA_BYTE_WD{1'b1}};
+	  #20         
+	  data_in     <= {{$random(seed)},{$random(seed)}};
+	  keep_in     <= {{3{1'b1}},{(DATA_BYTE_WD-3){1'b0}}};
+	  last_in     <= 1'b1;
+	  #20         
+	  valid_in    <= 1'b0;
+	  data_in     <= 0;
+	  keep_in     <= {DATA_BYTE_WD{1'b0}};
+	  last_in     <= 1'b0;
+      #40;
+   end
+
+endtask
+
+
+
+axi_stream_insert_header 
+#(
+  .DATA_WD        (DATA_WD)  ,
+  .DATA_BYTE_WD   (DATA_BYTE_WD)  ,
+  //输入data_in数据的拍数
+  .data_in_num    (data_in_num)
+) 
+inst_axi_stream_insert_header
+(
+  .clk            (clk          ) ,
+  .rst_n          (rst_n        ) ,
+  
+  //输入的AXI_Stream数据流data_in相关接口
+  .valid_in       (valid_in     ),
+  .data_in        (data_in      ),
+  .keep_in        (keep_in      ),
+  .last_in        (last_in      ),
+  .ready_in       (ready_in     ),
+  
+  //输出插入帧之后的的AXI_Stream数据流
+  .valid_out      (valid_out    ),
+  .data_out       (data_out     ),
+  .keep_out       (keep_out     ),
+  .last_out       (last_out     ),
+  .ready_out      (ready_out    ),
+  
+  //输入的插入帧数据相关接口
+  .valid_insert   (valid_insert ),
+  .header_insert  (header_insert),
+  .keep_insert    (keep_insert  ),
+  .ready_insert   (ready_insert )
+);
+
+endmodule
+
+
+
+
+
+
+
+
+
+
